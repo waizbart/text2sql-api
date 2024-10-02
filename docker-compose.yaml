@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   api:
     build: ./api
@@ -33,6 +31,9 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+        limits:
+          memory: 12g
+
     depends_on:
       - redis
       - rabbitmq

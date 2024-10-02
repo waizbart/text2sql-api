@@ -23,6 +23,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ./ /app
 
+RUN mkdir -p /app/offload_folder
+
 ENV MODEL_PATH=/models/Chat2DB-SQL-7B
 
-CMD ["celery", "-A", "tasks", "worker", "--loglevel=info"]
+CMD ["celery", "-A", "tasks", "worker", "--loglevel=info", "--pool=solo"]
