@@ -28,7 +28,7 @@ try:
         offload_folder='offload_folder',
         torch_dtype=torch.float16, 
         max_memory={
-		0: '10GB',
+		0: '8GB',
 		"cpu": '12GB'
 	} 
     )

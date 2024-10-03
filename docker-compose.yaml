@@ -22,6 +22,7 @@ services:
       - REDIS_HOST=redis
       - RABBITMQ_HOST=rabbitmq
       - MODEL_PATH=/models/Chat2DB-SQL-7B
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
     volumes:
       - ./models:/models
     deploy:
@@ -31,8 +32,6 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-        limits:
-          memory: 12g
     depends_on:
       - redis
       - rabbitmq
