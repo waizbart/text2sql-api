@@ -25,19 +25,21 @@ try:
         model_path,
         trust_remote_code=True,
         device_map="auto",
+        offload_folder='offload_folder',
         torch_dtype=torch.float16, 
-        use_cache=True,
-        offload_folder='offload_folder'
+        max_memory={
+		0: '10GB',
+		"cpu": '12GB'
+	} 
     )
-    tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True, legacy=False)
+    tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
 
     text_pipeline = pipeline(
         "text-generation",
         model=model,
         tokenizer=tokenizer,
-        max_new_tokens=50,
-        return_full_text=False,
-        device_map="auto"
+        max_new_tokens=100,
+        return_full_text=False
     )
 
     logger.info("Modelo carregado com sucesso.")

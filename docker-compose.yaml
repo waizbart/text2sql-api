@@ -33,10 +33,11 @@ services:
               capabilities: [gpu]
         limits:
           memory: 12g
-
     depends_on:
       - redis
       - rabbitmq
+    networks:
+      - app-network
 
   rabbitmq:
     image: 'rabbitmq:3-management'
