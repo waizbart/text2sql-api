@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.7.1-cudnn8-runtime-ubuntu20.04
+FROM nvidia/cuda:12.4.0-runtime-ubuntu22.04
 
 WORKDIR /app
 
@@ -12,10 +12,10 @@ RUN apt-get update && apt-get install -y \
 RUN python3 -m pip install --no-cache-dir --upgrade pip
 
 RUN pip3 install --no-cache-dir \
-    torch==2.0.1+cu117 \
+    torch==2.4.1+cu124 \
     torchvision \
     torchaudio \
-    --extra-index-url https://download.pytorch.org/whl/cu117
+    --extra-index-url https://download.pytorch.org/whl/cu124
 
 COPY requirements.txt .
 
