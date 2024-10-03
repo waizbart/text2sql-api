@@ -38,7 +38,7 @@ export class AppController {
     } else if (result.status === 'pending' || result.status === 'processing') {
       return { status: result.status };
     } else if (result.status === 'completed') {
-      return { status: 'completed', result: result.queryResult };
+      return { status: 'completed', result: result.queryResult, generatedSql: result.generatedSQL };
     } else if (result.status === 'error') {
       return { status: 'error', error: result.error };
     } else {
