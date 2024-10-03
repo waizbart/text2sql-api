@@ -1,20 +1,27 @@
 import {
   Controller,
+  UseGuards,
   Post,
   Get,
   Param,
   Body,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { AppService } from './app.service';
+import { AuthGuard } from './guards/auth.guard';
 
-@Controller()
+@UseGuards(AuthGuard)
+@Controller('api')
 export class AppController {
+  private readonly logger = new Logger(AppController.name);
+
   constructor(private readonly appService: AppService) {}
 
-  @Post('/api/query')
-  async generate(@Body('prompt') prompt: string) {
+  @Post('query')
+  async generate(@Body('prompt') prompt: string): Promise<{ taskId: string }> {
+    this.logger.log('Recebida requisição para gerar tarefa.');
     if (!prompt) {
       throw new HttpException('Prompt is required', HttpStatus.BAD_REQUEST);
     }
@@ -22,8 +29,9 @@ export class AppController {
     return { taskId };
   }
 
-  @Get('/api/status/:taskId')
-  async getResult(@Param('taskId') taskId: string) {
+  @Get('status/:taskId')
+  async getResult(@Param('taskId') taskId: string): Promise<any> {
+    this.logger.log(`Consultando status da tarefa: ${taskId}`);
     const result = await this.appService.getTaskResult(taskId);
     if (!result || !result.status) {
       throw new HttpException('Task not found', HttpStatus.NOT_FOUND);
@@ -33,6 +41,8 @@ export class AppController {
       return { status: 'completed', result: result.queryResult };
     } else if (result.status === 'error') {
       return { status: 'error', error: result.error };
+    } else {
+      throw new HttpException('Unknown task status', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }
