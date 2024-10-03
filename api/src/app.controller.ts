@@ -13,7 +13,7 @@ import { AppService } from './app.service';
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
-  @Post('generate')
+  @Post('/api/query')
   async generate(@Body('prompt') prompt: string) {
     if (!prompt) {
       throw new HttpException('Prompt is required', HttpStatus.BAD_REQUEST);
@@ -22,7 +22,7 @@ export class AppController {
     return { taskId };
   }
 
-  @Get('result/:taskId')
+  @Get('/api/status/:taskId')
   async getResult(@Param('taskId') taskId: string) {
     const result = await this.appService.getTaskResult(taskId);
     if (!result || !result.status) {

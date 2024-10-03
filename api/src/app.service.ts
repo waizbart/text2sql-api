@@ -1,19 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import * as celery from 'celery-node'; // Importa o cliente Celery para Node.js
-import { PrismaClient } from '@prisma/client';
 import { createClient } from 'redis';
+import { DatabaseService } from './services/database.service';
+import { PromptService } from './services/prompt.service';
+import { QueueService } from './services/queue.service';
 
 @Injectable()
 export class AppService {
-  private prisma: PrismaClient;
   private redisClient;
-  private celeryClient; // Cliente Celery
 
-  constructor() {
-    this.prisma = new PrismaClient();
+  constructor(
+    private databaseService: DatabaseService,
+    private promptService: PromptService,
+    private queueService: QueueService,
+  ) {
     this.initializeRedis();
-    this.initializeCelery(); // Inicializa o cliente Celery
   }
 
   private async initializeRedis() {
@@ -25,22 +26,13 @@ export class AppService {
     await this.redisClient.connect();
   }
 
-  private initializeCelery() {
-    const rabbitmqHost = process.env.RABBITMQ_HOST || 'localhost';
-    const redisHost = process.env.REDIS_HOST || 'localhost';
-
-    this.celeryClient = celery.createClient(
-      `amqp://${rabbitmqHost}`,
-      `redis://${redisHost}:6379/0`,
-    );
-  }
-
-  async enqueueTask(prompt: string): Promise<string> {
+  async enqueueTask(question: string): Promise<string> {
     const taskId = uuidv4();
 
-    const task = this.celeryClient.createTask('tasks.process_prompt');
+    const schemaContent = this.databaseService.getSchemaContent();
+    const prompt = this.promptService.buildPrompt(schemaContent, question);
 
-    task.applyAsync([taskId, prompt]);
+    this.queueService.enqueueTask('tasks.process_prompt', [taskId, prompt]);
 
     await this.redisClient.hSet(`task:${taskId}`, { status: 'pending' });
 
@@ -49,11 +41,12 @@ export class AppService {
 
   async getTaskResult(taskId: string): Promise<any> {
     const result = await this.redisClient.hGetAll(`task:${taskId}`);
+
     if (!result || !result.status) {
       return null;
     } else if (result.status === 'completed' && !result.queryResult) {
       try {
-        const queryResult = await this.executeSQL(result.generatedSQL);
+        const queryResult = await this.databaseService.executeSQL(result.generatedSQL);
         await this.redisClient.hSet(`task:${taskId}`, {
           queryResult: JSON.stringify(queryResult),
         });
@@ -68,14 +61,5 @@ export class AppService {
       }
     }
     return result;
-  }
-
-  private async executeSQL(sql: string): Promise<any> {
-    try {
-      const result = await this.prisma.$queryRawUnsafe(sql);
-      return result;
-    } catch (error) {
-      throw new Error(`Erro ao executar SQL: ${error.message}`);
-    }
   }
 }

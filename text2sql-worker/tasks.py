@@ -25,7 +25,6 @@ try:
         model_path,
         trust_remote_code=True,
         device_map="auto",
-        low_cpu_mem_usage=True,
         torch_dtype=torch.float16, 
         use_cache=True,
         offload_folder='offload_folder'
@@ -37,7 +36,8 @@ try:
         model=model,
         tokenizer=tokenizer,
         max_new_tokens=50,
-        return_full_text=False
+        return_full_text=False,
+        device_map="auto"
     )
 
     logger.info("Modelo carregado com sucesso.")
@@ -52,11 +52,26 @@ def process_prompt(self, taskId, prompt):
         redis_client.hset(f'task:{taskId}', 'status', 'processing')
 
         logger.info(f"Task {taskId}: Gerando texto com o modelo.")
-        generated_text = text_pipeline(prompt, pad_token_id=text_pipeline.tokenizer.eos_token_id)[0]['generated_text']
-        logger.info(f"Task {taskId}: Texto gerado com sucesso.")
+        generated_text = text_pipeline(
+            prompt, pad_token_id=text_pipeline.tokenizer.eos_token_id
+        )[0]['generated_text']
 
-        redis_client.hset(f'task:{taskId}', mapping={'status': 'completed', 'generatedSQL': generated_text})
+        select_index = generated_text.upper().find("SELECT")
+        if select_index != -1:
+            formatted_text = generated_text[select_index:]
+            logger.info(f"Task {taskId}: Texto gerado com sucesso: {formatted_text}.")
+        else:
+            formatted_text = generated_text
+            logger.warning(f"Task {taskId}: SQL gerado invalido.")
+
+        redis_client.hset(
+            f'task:{taskId}',
+            mapping={'status': 'completed', 'generatedSQL': formatted_text}
+        )
         logger.info(f"Task {taskId}: Status atualizado para 'completed'.")
     except Exception as e:
-        redis_client.hset(f'task:{taskId}', mapping={'status': 'error', 'error': str(e)})
+        redis_client.hset(
+            f'task:{taskId}',
+            mapping={'status': 'error', 'error': str(e)}
+        )
         logger.error(f"Erro ao processar taskId {taskId}: {str(e)}")
